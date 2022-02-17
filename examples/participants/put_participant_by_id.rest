@@ -1,0 +1,8 @@
+PUT http://127.0.0.1:8000/api/v1/participant/84
+Content-Type: application/json
+
+{
+    "firstname": "Aesda",
+    "lastname": "Adsea",
+    "age": 31
+}
