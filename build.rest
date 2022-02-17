@@ -1,0 +1,12 @@
+POST http://127.0.0.1:8000/persistence/build/<persistence>
+Content-Type: application/json
+
+{
+    "dbname": "",
+    "user": "",
+    "password": ""
+}
+
+
+// The persistence name would be
+// postgres, PostgreSQL, mysql, MySQL

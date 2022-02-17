@@ -1,0 +1,6 @@
+PUT http://127.0.0.1:8000/api/v1/event/26
+Content-Type: application/json
+
+{
+    "name": "Drako's birthday"
+}

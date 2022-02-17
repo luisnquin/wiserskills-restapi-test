@@ -1,0 +1,24 @@
+GET http://127.0.0.1:8000/api/v1/events
+GET http://127.0.0.1:8000/api/v1/participants
+GET http://127.0.0.1:8000/api/v1/tickets
+
+GET http://127.0.0.1:8000/api/v1/event/:id
+GET http://127.0.0.1:8000/api/v1/participant/:id
+GET http://127.0.0.1:8000/api/v1/ticket/:id
+
+GET http://127.0.0.1:8000/api/v1/event/:id/participants
+GET http://127.0.0.1:8000/api/v1/event/:id/tickets
+GET http://127.0.0.1:8000/api/v1/participant/:id/tickets
+
+POST http://127.0.0.1:8000/api/v1/event
+POST http://127.0.0.1:8000/api/v1/participant
+POST http://127.0.0.1:8000/api/v1/ticket
+
+PATCH http://127.0.0.1:8000/api/v1/ticket/:id
+
+PUT http://127.0.0.1:8000/api/v1/event/:id
+PUT http://127.0.0.1:8000/api/v1/participant/:id
+
+DELETE http://127.0.0.1:8000/api/v1/event/:id
+DELETE http://127.0.0.1:8000/api/v1/participant/:id
+DELETE http://127.0.0.1:8000/api/v1/ticket/:id
