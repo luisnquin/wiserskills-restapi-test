@@ -2,7 +2,6 @@ package persistence
 
 import (
 	"database/sql"
-	"fmt"
 	"net/http"
 	"os"
 	"log"
@@ -18,7 +17,7 @@ import (
 func Build() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		// To avoid portability issues
-		var mocks = []string{
+		var events = []string{
 			"INSERT INTO events(name) VALUES('Angela Davidson');",
 			"INSERT INTO events(name) VALUES('Angela Harrison');",
 			"INSERT INTO events(name) VALUES('Lisa Acosta');",
@@ -319,6 +318,9 @@ func Build() echo.HandlerFunc {
 			"INSERT INTO events(name) VALUES('Kristin Glover');",
 			"INSERT INTO events(name) VALUES('Patrick Wells');",
 			"INSERT INTO events(name) VALUES('Chelsea Smith');",
+		}
+
+		var participants = []string{
 			"INSERT INTO participants(firstname, lastname, age) VALUES('Richard', 'Hawkins', 121);",
 			"INSERT INTO participants(firstname, lastname, age) VALUES('Adam', 'Edwards', 129);",
 			"INSERT INTO participants(firstname, lastname, age) VALUES('Anthony', 'Jones', 45);",
@@ -1819,6 +1821,9 @@ func Build() echo.HandlerFunc {
 			"INSERT INTO participants(firstname, lastname, age) VALUES('Sarah', 'Moss', 96);",
 			"INSERT INTO participants(firstname, lastname, age) VALUES('Matthew', 'Mcpherson', 81);",
 			"INSERT INTO participants(firstname, lastname, age) VALUES('Robert', 'Weber', 95);",
+		}
+
+		var tickets = []string{
 			"INSERT INTO tickets(event, participant) VALUES(239, 1086);",
 			"INSERT INTO tickets(event, participant) VALUES(59, 390);",
 			"INSERT INTO tickets(event, participant) VALUES(264, 278);",
@@ -4220,27 +4225,30 @@ func Build() echo.HandlerFunc {
 			"INSERT INTO tickets(event, participant) VALUES(299, 1138);",
 			"INSERT INTO tickets(event, participant) VALUES(87, 742);",
 		}
-		var err error
+		var (
+			persistence = c.Param("persistence")
+			dsn = new(models.DSN)
+			err error
+		)
 
-		psql, _ := regexp.Compile(`[pP][oO][Ss][tT][gG][rR][eE][sS]?[qQ]?[Ll]?`)
+		psql, _ := regexp.Compile(`([pP][oO][Ss][tT][gG][rR][eE][sS]?[qQ]?[Ll]?)|([pP][sS][Qq][lL])`)
 		mysql, _ := regexp.Compile(`[mM][yY][sS][Qq][lL]`)
 
-		persistence := c.Param("persistence")
 
-		rawDsn := new(models.DSN)
-		if err = c.Bind(rawDsn); err != nil {
+		if err = c.Bind(dsn); err != nil {
 			return c.String(http.StatusUnprocessableEntity, "Your request body!")
 		}
-		if rawDsn == new(models.DSN) {
+		if (*dsn == models.DSN{}) {
 			return c.String(http.StatusBadRequest, "No DSN provided in request body.\n\nSee: http://127.0.0.1:8000/persistence/help")
 		}
 
 		switch {
 		case psql.Match([]byte(persistence)):
-			err = os.Setenv("dsn", fmt.Sprintf("dbname=%s user=%s password=%s host=localhost port=5432 sslmode=disable", rawDsn.Dbname, rawDsn.User, rawDsn.Password))
+			err = os.Setenv("dsn", "dbname="+dsn.Dbname+" user="+dsn.User+" password="+dsn.Password+" host=localhost port=5432 sslmode=disable")
 			if err != nil {
 				return c.String(http.StatusInternalServerError, "Error setting DSN as environment variable")
 			}
+
 			if err = os.Setenv("PERSISTENCE_NAME", "PostgreSQL"); err != nil {
 				c.String(http.StatusInternalServerError, "Error trying to set the PERSISTENCE_NAME as environment variable")
 			}
@@ -4249,6 +4257,7 @@ func Build() echo.HandlerFunc {
 			if err != nil {
 				return c.String(http.StatusInternalServerError, "The DSN is failing or the database connection is dead")
 			}
+			
 			if err = db.Ping(); err != nil {
 				return c.String(http.StatusInternalServerError, "No response from the database")
 			}
@@ -4273,22 +4282,36 @@ func Build() echo.HandlerFunc {
 				}
 			}
 
-			for _, mock := range mocks {
+			for _, mock := range events {
 				if _, err = db.Exec(mock); err != nil {
 					log.Println(err)
-					return c.String(http.StatusInternalServerError, "Mock data was not inserted as expected")
 				}
 			}
+
+			for _, mock := range participants {
+				if _, err = db.Exec(mock); err != nil {
+					log.Println(err)
+				}
+			}
+
+			for _, mock := range tickets {
+				if _, err = db.Exec(mock); err != nil {
+					log.Println(err)
+				}
+			}
+
 			return c.String(http.StatusOK, "Database built and established DSN")
 
 		case mysql.Match([]byte(persistence)):
-			err = os.Setenv("dsn", fmt.Sprintf("%s:%s@tcp(localhost:3306)/%s?parseTime=true", rawDsn.User, rawDsn.Password, rawDsn.Dbname))
+			err = os.Setenv("dsn", dsn.User+":"+dsn.Password+"@tcp(localhost:3306)/"+dsn.Dbname+"?parseTime=true")
 			if err != nil {
 				return c.String(http.StatusInternalServerError, "Error setting DSN as environment variable")
 			}
+
 			if err = os.Setenv("PERSISTENCE_NAME", "MySQL"); err != nil {
 				c.String(http.StatusInternalServerError, "Error trying to set the PERSISTENCE_NAME as environment variable")
 			}
+
 			db, err := sql.Open("mysql", os.Getenv("dsn"))
 			if err != nil {
 				return c.String(http.StatusInternalServerError, "The DSN is failing or the database connection is dead")
@@ -4296,7 +4319,6 @@ func Build() echo.HandlerFunc {
 			if err = db.Ping(); err != nil {
 				return c.String(http.StatusInternalServerError, "No response from the database")
 			}
-
 			defer func() {
 				if err = db.Close(); err != nil {
 					panic(err)
@@ -4320,12 +4342,25 @@ func Build() echo.HandlerFunc {
 					return c.String(http.StatusInternalServerError, "Failure when trying to recreate schemas")
 				}
 			}
-			for _, mock := range mocks {
+
+			for _, mock := range events {
 				if _, err = db.Exec(mock); err != nil {
 					log.Println(err)
-					return c.String(http.StatusInternalServerError, "Mock data was not inserted as expected")
 				}
 			}
+
+			for _, mock := range participants {
+				if _, err = db.Exec(mock); err != nil {
+					log.Println(err)
+				}
+			}
+
+			for _, mock := range tickets {
+				if _, err = db.Exec(mock); err != nil {
+					log.Println(err)
+				}
+			}
+
 			return c.String(http.StatusOK, "Database built and established DSN")
 
 		default:

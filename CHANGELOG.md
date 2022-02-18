@@ -1,25 +1,22 @@
 
-Refactor (
-    package controllers:
-        -> Variable names with camel case
-        -> Customised bad responses messages
-)
-
-Mod (
-    /examples/endpoints.url
-        -> All endpoint now(expect persistence)
-    /README.md
+Refactored (
+    /src/controllers/events/delete.go RemoveByIdWithParticipants function:
+        -> Row affected output removed
+        -> sqlx rebinder removed and replaced by switch
+        -> Now with context
 )
 
 Add (
-    /examples/tickets/patch_ticket_by_id.rest
-    /CHANGELOG.md
+    /src/database/mysql.sql 
+        -> Statements for manual construction
 )
 
-Fix (
-    /examples/tickets/post_ticket.rest 
-        -> Bad URI 
+Renamed (
+    /src/database/statements.sql 
+        -> psql.sql
+)
 
-    package controllers: 
-        -> Sloopy response codes
+Mod (
+    /src/controllers/persistence/persistence.go
+        -> Regular expression now accepts something like 'PSQL', 'psql'
 )
