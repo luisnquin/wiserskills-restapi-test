@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 
 	"github.com/luisnquin/restapi-technical-test/src/constants"
@@ -68,10 +67,12 @@ func RemoveById() echo.HandlerFunc {
 			}
 		}()
 
-		q := "DELETE FROM events WHERE id = ?;"
-
-		if constants.Persistence == storage.PostgreSQL {
-			q = sqlx.Rebind(sqlx.DOLLAR, q)
+		var q string
+		switch constants.Persistence {
+		case storage.PostgreSQL:
+			q = "DELETE FROM events WHERE id = $1;"
+		case storage.MySQL:
+			q = "DELETE FROM events WHERE id = ?;"
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
@@ -207,6 +208,9 @@ func RemoveByIdWithParticipants() echo.HandlerFunc {
 			}
 		}()
 
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		defer cancel()
+
 		var q string
 		switch constants.Persistence {
 		case storage.PostgreSQL:
@@ -215,7 +219,7 @@ func RemoveByIdWithParticipants() echo.HandlerFunc {
 			q = "DELETE FROM participants WHERE id IN (SELECT participant FROM tickets WHERE event = ?);"
 		}
 
-		stmt, err := db.Prepare(q)
+		stmt, err := db.PrepareContext(ctx, q)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, models.BadResponse{
 				APIVersion: constants.APIVersion,
@@ -241,7 +245,7 @@ func RemoveByIdWithParticipants() echo.HandlerFunc {
 			}
 		}()
 
-		r, err := stmt.Exec(id)
+		_, err = stmt.ExecContext(ctx, id)
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, models.BadResponse{
 				APIVersion: constants.APIVersion,
@@ -262,8 +266,6 @@ func RemoveByIdWithParticipants() echo.HandlerFunc {
 				},
 			})
 		}
-		i, _ := r.RowsAffected()
-		fmt.Println(i)
 
 		switch constants.Persistence {
 		case storage.PostgreSQL:
@@ -272,7 +274,7 @@ func RemoveByIdWithParticipants() echo.HandlerFunc {
 			q = "DELETE FROM events WHERE id = ?;"
 		}
 
-		stmt, err = db.Prepare(q)
+		stmt, err = db.PrepareContext(ctx, q)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, models.BadResponse{
 				APIVersion: constants.APIVersion,
@@ -298,7 +300,7 @@ func RemoveByIdWithParticipants() echo.HandlerFunc {
 			}
 		}()
 
-		r, err = stmt.Exec(id)
+		r, err := stmt.ExecContext(ctx, id)
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, models.BadResponse{
 				APIVersion: constants.APIVersion,
