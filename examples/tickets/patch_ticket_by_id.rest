@@ -1,0 +1,7 @@
+PATCH http://127.0.0.1:8000/api/v1/ticket/85
+Content-Type: application/json
+
+{
+    "participant": 80,
+    "event": 31
+}

@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 
 	"github.com/luisnquin/restapi-technical-test/src/constants"
@@ -19,7 +18,6 @@ func UpdateById() echo.HandlerFunc {
 		var (
 			db      = storage.Get(constants.Persistence)
 			request = new(models.Participant)
-			err     error
 		)
 
 		id, err := strconv.Atoi(c.Param("id"))
@@ -33,11 +31,11 @@ func UpdateById() echo.HandlerFunc {
 				},
 				Error: models.Error{
 					Code:    422,
-					Message: "Unprocessable entity",
+					Message: "Unprocessable Entity",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Unprocessable entity",
+							"reason":  "Unprocessable Entity",
+							"message": "The ID parameter cannot be processed as integer",
 						},
 					},
 				},
@@ -57,8 +55,8 @@ func UpdateById() echo.HandlerFunc {
 					Message: "Bad request",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Bad request",
+							"reason":  "Bad request",
+							"message": "The request body data is not valid",
 						},
 					},
 				},
@@ -78,7 +76,7 @@ func UpdateById() echo.HandlerFunc {
 					Message: "Bad Request",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  "The request body is empty",
+							"reason":  "The request body data is empty",
 							"message": "Bad Request",
 						},
 					},
@@ -96,11 +94,11 @@ func UpdateById() echo.HandlerFunc {
 				},
 				Error: models.Error{
 					Code:    500,
-					Message: "Internal server error",
+					Message: "Internal Server Error",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Internal server error",
+							"reason":  "Internal Server Error",
+							"message": "Database connection failed",
 						},
 					},
 				},
@@ -112,10 +110,12 @@ func UpdateById() echo.HandlerFunc {
 			}
 		}()
 
-		q := "UPDATE participants SET firstname = ?, lastname = ?, age = ? WHERE id = ?;"
-
-		if constants.Persistence == storage.PostgreSQL {
-			q = sqlx.Rebind(sqlx.DOLLAR, q)
+		var q string
+		switch constants.Persistence {
+		case storage.PostgreSQL:
+			q = "UPDATE participants SET firstname = $1, lastname = $2, age = $3 WHERE id = $4;"
+		case storage.MySQL:
+			q = "UPDATE participants SET firstname = ?, lastname = ?, age = ? WHERE id = ?;"
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
@@ -132,11 +132,10 @@ func UpdateById() echo.HandlerFunc {
 				},
 				Error: models.Error{
 					Code:    500,
-					Message: "Internal server error",
+					Message: "Internal Server Error",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Internal server error",
+							"reason":  "Internal Server Error",
 						},
 					},
 				},
@@ -160,11 +159,11 @@ func UpdateById() echo.HandlerFunc {
 				},
 				Error: models.Error{
 					Code:    400,
-					Message: "Bad request",
+					Message: "Bad Request",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Bad request",
+							"reason":  "Bad Request",
+							"message": "The request body or param was rejected, not valid",
 						},
 					},
 				},
@@ -183,8 +182,8 @@ func UpdateById() echo.HandlerFunc {
 					Message: "Not Found",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Not Found",
+							"reason":  "Not Found",
+							"message": "Participant not found",
 						},
 					},
 				},

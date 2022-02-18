@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 
 	"github.com/luisnquin/restapi-technical-test/src/constants"
@@ -35,8 +34,8 @@ func RemoveById() echo.HandlerFunc {
 					Message: "Unprocessable entity",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Unprocessable entity",
+							"reason":  "Unprocessable Entity",
+							"message": "The ID parameter cannot be processed as integer",
 						},
 					},
 				},
@@ -53,11 +52,11 @@ func RemoveById() echo.HandlerFunc {
 				},
 				Error: models.Error{
 					Code:    500,
-					Message: "Internal server error",
+					Message: "Internal Server Error",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Internal server error",
+							"reason":  "Internal Server Error",
+							"message": "Database connection failed",
 						},
 					},
 				},
@@ -70,10 +69,12 @@ func RemoveById() echo.HandlerFunc {
 			}
 		}()
 
-		q := "DELETE FROM participants WHERE id = ?;"
-
-		if constants.Persistence == storage.PostgreSQL {
-			q = sqlx.Rebind(sqlx.DOLLAR, q)
+		var q string
+		switch constants.Persistence {
+		case storage.PostgreSQL:
+			q = "DELETE FROM participants WHERE id = $1;"
+		case storage.MySQL:
+			q = "DELETE FROM participants WHERE id = ?;"
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
@@ -81,7 +82,7 @@ func RemoveById() echo.HandlerFunc {
 
 		stmt, err := db.PrepareContext(ctx, q)
 		if err != nil {
-			return c.JSON(http.StatusBadRequest, models.BadResponse{
+			return c.JSON(http.StatusInternalServerError, models.BadResponse{
 				APIVersion: constants.APIVersion,
 				Method:     "participants.delete",
 				Context:    c.Request().URL.String(),
@@ -90,11 +91,10 @@ func RemoveById() echo.HandlerFunc {
 				},
 				Error: models.Error{
 					Code:    400,
-					Message: "Bad Request",
+					Message: "Internal Server Error",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Bad Request",
+							"reason":  "Internal Server Error",
 						},
 					},
 				},
@@ -117,11 +117,11 @@ func RemoveById() echo.HandlerFunc {
 				},
 				Error: models.Error{
 					Code:    400,
-					Message: "Bad request",
+					Message: "Bad Request",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Bad request",
+							"reason":  "Bad Request",
+							"message": "The ID parameter was refected, not valid",
 						},
 					},
 				},
@@ -140,8 +140,8 @@ func RemoveById() echo.HandlerFunc {
 					Message: "Not Found",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Not Found",
+							"reason":  "Not Found",
+							"message": "Participant not found",
 						},
 					},
 				},

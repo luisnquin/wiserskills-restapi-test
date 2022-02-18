@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 
 	"github.com/luisnquin/restapi-technical-test/src/constants"
@@ -30,11 +29,11 @@ func Fetch() echo.HandlerFunc {
 				Context:    c.Request().URL.String(),
 				Error: models.Error{
 					Code:    500,
-					Message: "Internal server error",
+					Message: "Internal Server Error",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Internal server error",
+							"reason":  "Internal Server Error",
+							"message": "Database connection failed",
 						},
 					},
 				},
@@ -64,11 +63,10 @@ func Fetch() echo.HandlerFunc {
 				Context:    c.Request().URL.String(),
 				Error: models.Error{
 					Code:    500,
-					Message: "Internal server error",
+					Message: "Internal Server Error",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Internal server error",
+							"reason":  "Internal Server Error",
 						},
 					},
 				},
@@ -88,11 +86,11 @@ func Fetch() echo.HandlerFunc {
 				Context:    c.Request().URL.String(),
 				Error: models.Error{
 					Code:    500,
-					Message: "Internal server error",
+					Message: "Internal Server Error",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Internal server error",
+							"reason":  "Internal Server Error",
+							"message": "There was an error when tried to bring the payload",
 						},
 					},
 				},
@@ -112,8 +110,8 @@ func Fetch() echo.HandlerFunc {
 						Message: "Conflict",
 						Errors: []map[string]interface{}{
 							{
-								"reason":  err,
-								"message": "Conflict",
+								"reason":  "Conflict",
+								"message": "An error was logged while trying to process the payload",
 							},
 						},
 					},
@@ -141,10 +139,7 @@ func Fetch() echo.HandlerFunc {
 
 func FetchById() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		var (
-			db  = storage.Get(constants.Persistence)
-			err error
-		)
+		var db  = storage.Get(constants.Persistence)
 
 		id, err := strconv.Atoi(c.Param("id"))
 		if err != nil {
@@ -157,11 +152,11 @@ func FetchById() echo.HandlerFunc {
 				},
 				Error: models.Error{
 					Code:    422,
-					Message: "Unprocessable entity",
+					Message: "Unprocessable Entity",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Unprocessable entity",
+							"reason":  "Unprocessable Entity",
+							"message": "The ID parameter provided cannot be processed as integer",
 						},
 					},
 				},
@@ -178,11 +173,11 @@ func FetchById() echo.HandlerFunc {
 				},
 				Error: models.Error{
 					Code:    500,
-					Message: "Internal server error",
+					Message: "Internal Server Error",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Internal server error",
+							"reason":  "Internal Server Error",
+							"message": "Database connection failed",
 						},
 					},
 				},
@@ -198,9 +193,12 @@ func FetchById() echo.HandlerFunc {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 		defer cancel()
 
-		q := "SELECT * FROM participants WHERE id = ? LIMIT 1;"
-		if constants.Persistence == storage.PostgreSQL {
-			q = sqlx.Rebind(sqlx.DOLLAR, q)
+		var q string
+		switch constants.Persistence {
+		case storage.PostgreSQL:
+			q = "SELECT * FROM participants WHERE id = $1 LIMIT 1;"
+		case storage.MySQL:
+			q = "SELECT * FROM participants WHERE id = ? LIMIT 1;"
 		}
 
 		stmt, err := db.PrepareContext(ctx, q)
@@ -214,11 +212,10 @@ func FetchById() echo.HandlerFunc {
 				},
 				Error: models.Error{
 					Code:    500,
-					Message: "Internal server error",
+					Message: "Internal Server Error",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Internal server error",
+							"reason":  "Internal Server Error",
 						},
 					},
 				},
@@ -245,8 +242,8 @@ func FetchById() echo.HandlerFunc {
 					Message: "Not Found",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Not Found",
+							"reason":  "Not Found",
+							"message": "Participant not found",
 						},
 					},
 				},
@@ -285,11 +282,11 @@ func FetchTicketsById() echo.HandlerFunc {
 				},
 				Error: models.Error{
 					Code:    422,
-					Message: "Unprocessable entity",
+					Message: "Unprocessable Entity",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Unprocessable entity",
+							"reason":  "Unprocessable Entity",
+							"message": "The ID provided cannot be processed as integer",
 						},
 					},
 				},
@@ -306,11 +303,11 @@ func FetchTicketsById() echo.HandlerFunc {
 				},
 				Error: models.Error{
 					Code:    500,
-					Message: "Internal server error",
+					Message: "Internal Server Error",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Internal server error",
+							"reason":  "Internal Server Error",
+							"message": "Database connection failed",
 						},
 					},
 				},
@@ -349,11 +346,10 @@ func FetchTicketsById() echo.HandlerFunc {
 				},
 				Error: models.Error{
 					Code:    500,
-					Message: "Internal server error",
+					Message: "Internal Server Error",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Internal server error",
+							"reason":  "Internal Server Error",
 						},
 					},
 				},
@@ -376,11 +372,11 @@ func FetchTicketsById() echo.HandlerFunc {
 				},
 				Error: models.Error{
 					Code:    500,
-					Message: "Internal server error",
+					Message: "Internal Server Error",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Internal server error",
+							"reason":  "Internal Server Error",
+							"message": "The ID parameter was rejected, not valid",
 						},
 					},
 				},
@@ -405,8 +401,8 @@ func FetchTicketsById() echo.HandlerFunc {
 						Message: "Conflict",
 						Errors: []map[string]interface{}{
 							{
-								"reason":  err,
-								"message": "Conflict",
+								"reason":  "Conflict",
+								"message": "An error was logged while trying to process the payload",
 							},
 						},
 					},

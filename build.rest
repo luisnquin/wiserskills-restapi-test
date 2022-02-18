@@ -1,10 +1,10 @@
-POST http://127.0.0.1:8000/persistence/build/<persistence>
+POST http://127.0.0.1:8000/persistence/build/postgres
 Content-Type: application/json
 
 {
-    "dbname": "",
-    "user": "",
-    "password": ""
+    "dbname": "restapi",
+    "user": "luisnquin",
+    "password": "UltimateNinja998"
 }
 
 
