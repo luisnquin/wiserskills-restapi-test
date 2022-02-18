@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 
 	"github.com/luisnquin/restapi-technical-test/src/constants"
@@ -20,7 +19,7 @@ func RemoveTicketById() echo.HandlerFunc {
 
 		id, err := strconv.Atoi(c.Param("id"))
 		if err != nil {
-			return c.JSON(http.StatusBadRequest, models.BadResponse{
+			return c.JSON(http.StatusUnprocessableEntity, models.BadResponse{
 				APIVersion: constants.APIVersion,
 				Method:     "tickets.delete",
 				Context:    c.Request().URL.String(),
@@ -28,12 +27,12 @@ func RemoveTicketById() echo.HandlerFunc {
 					"id": id,
 				},
 				Error: models.Error{
-					Code:    400,
-					Message: "Bad request",
+					Code:    422,
+					Message: "Unprocessable Entity",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Bad request",
+							"reason":  "Unprocessable Entity",
+							"message": "The ID parameter cannot be processed as integer",
 						},
 					},
 				},
@@ -50,11 +49,11 @@ func RemoveTicketById() echo.HandlerFunc {
 				},
 				Error: models.Error{
 					Code:    500,
-					Message: "Internal server error",
+					Message: "Internal Server Error",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Internal server error",
+							"reason":  "Internal Server Error",
+							"message": "Database connection failed",
 						},
 					},
 				},
@@ -67,9 +66,12 @@ func RemoveTicketById() echo.HandlerFunc {
 			}
 		}()
 
-		q := "DELETE FROM tickets WHERE id = ?;"
-		if constants.Persistence == storage.PostgreSQL {
-			q = sqlx.Rebind(sqlx.DOLLAR, q)
+		var q string
+		switch constants.Persistence {
+		case storage.PostgreSQL:
+			q = "DELETE FROM tickets WHERE id = $1;"
+		case storage.MySQL:
+			q = "DELETE FROM tickets WHERE id = ?;"
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
@@ -86,11 +88,10 @@ func RemoveTicketById() echo.HandlerFunc {
 				},
 				Error: models.Error{
 					Code:    500,
-					Message: "Internal server error",
+					Message: "Internal Server Error",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Internal server error",
+							"reason":  "Internal Server Error",
 						},
 					},
 				},
@@ -113,11 +114,11 @@ func RemoveTicketById() echo.HandlerFunc {
 				},
 				Error: models.Error{
 					Code:    400,
-					Message: "Bad request",
+					Message: "Bad Request",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Bad request",
+							"reason":  "Bad Request",
+							"message": "The ID parameter was rejected, not valid",
 						},
 					},
 				},
@@ -136,8 +137,8 @@ func RemoveTicketById() echo.HandlerFunc {
 					Message: "Not Found",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Not Found",
+							"reason":  "Not Found",
+							"message": "Ticket not found",
 						},
 					},
 				},

@@ -29,11 +29,11 @@ func FetchTickets() echo.HandlerFunc {
 				Context:    c.Request().URL.String(),
 				Error: models.Error{
 					Code:    500,
-					Message: "Internal server error",
+					Message: "Internal Server Error",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Internal server error",
+							"reason":  "Internal Server Error",
+							"message": "Database connection failed",
 						},
 					},
 				},
@@ -63,11 +63,10 @@ func FetchTickets() echo.HandlerFunc {
 				Context:    c.Request().URL.String(),
 				Error: models.Error{
 					Code:    500,
-					Message: "Internal server error",
+					Message: "Internal Server Error",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Internal server error",
+							"reason":  "Internal Server Error",
 						},
 					},
 				},
@@ -90,8 +89,8 @@ func FetchTickets() echo.HandlerFunc {
 					Message: "Not Found",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Not Found",
+							"reason":  "Not Found",
+							"message": "There was an error when tried to bring the payload",
 						},
 					},
 				},
@@ -112,8 +111,8 @@ func FetchTickets() echo.HandlerFunc {
 						Message: "Conflict",
 						Errors: []map[string]interface{}{
 							{
-								"reason":  err,
-								"message": "Conflict",
+								"reason": "Conflict",
+								"message": "An error was logged while trying to process the payload",
 							},
 						},
 					},
@@ -155,11 +154,11 @@ func FetchById() echo.HandlerFunc {
 				},
 				Error: models.Error{
 					Code:    422,
-					Message: "Unprocessable entity",
+					Message: "Unprocessable Entity",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Unprocessable entity",
+							"reason":  "Unprocessable Entity",
+							"message": "The ID parameter cannot be processed as integer",
 						},
 					},
 				},
@@ -170,13 +169,16 @@ func FetchById() echo.HandlerFunc {
 				APIVersion: constants.APIVersion,
 				Method:     "tickets.get",
 				Context:    c.Request().URL.String(),
+				Params: map[string]interface{}{
+					"id": id,
+				},
 				Error: models.Error{
 					Code:    500,
-					Message: "Internal server error",
+					Message: "Internal Server Error",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Internal server error",
+							"reason":  "Internal Server Error",
+							"message": "Database connection failed",
 						},
 					},
 				},
@@ -206,13 +208,15 @@ func FetchById() echo.HandlerFunc {
 				APIVersion: constants.APIVersion,
 				Method:     "tickets.get",
 				Context:    c.Request().URL.String(),
+				Params: map[string]interface{}{
+					"id": id,
+				},
 				Error: models.Error{
 					Code:    500,
-					Message: "Internal server error",
+					Message: "Internal Server Error",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Internal server error",
+							"reason":  "Internal Server Error",
 						},
 					},
 				},
@@ -227,7 +231,7 @@ func FetchById() echo.HandlerFunc {
 		var tview models.TicketView
 		err = stmt.QueryRowContext(ctx, id).Scan(&tview.Id, &tview.Participant, &tview.Event)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, models.BadResponse{
+			return c.JSON(http.StatusBadRequest, models.BadResponse{
 				APIVersion: constants.APIVersion,
 				Method:     "tickets.get",
 				Context:    c.Request().URL.String(),
@@ -235,12 +239,12 @@ func FetchById() echo.HandlerFunc {
 					"id": id,
 				},
 				Error: models.Error{
-					Code:    500,
-					Message: "Internal server error",
+					Code:    400,
+					Message: "Bad Request",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Internal server error",
+							"reason":  "Bad Request",
+							"message": "The ID paremeter was rejected, not valid",
 						},
 					},
 				},

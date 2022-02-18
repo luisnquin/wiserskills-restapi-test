@@ -33,8 +33,8 @@ func RemoveById() echo.HandlerFunc {
 					Message: "Unprocessable entity",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Unprocessable entity",
+							"reason":  "Unprocessable entity",
+							"message": "The ID parameter cannot be used as integer",
 						},
 					},
 				},
@@ -54,8 +54,8 @@ func RemoveById() echo.HandlerFunc {
 					Message: "Internal server error",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Internal server error",
+							"reason":  "Internal server error",
+							"message": "Database connection failed",
 						},
 					},
 				},
@@ -79,7 +79,7 @@ func RemoveById() echo.HandlerFunc {
 
 		stmt, err := db.PrepareContext(ctx, q)
 		if err != nil {
-			return c.JSON(http.StatusBadRequest, models.BadResponse{
+			return c.JSON(http.StatusInternalServerError, models.BadResponse{
 				APIVersion: constants.APIVersion,
 				Method:     "events.delete",
 				Context:    c.Request().URL.String(),
@@ -87,12 +87,11 @@ func RemoveById() echo.HandlerFunc {
 					"id": id,
 				},
 				Error: models.Error{
-					Code:    400,
-					Message: "Bad Request",
+					Code:    500,
+					Message: "Internal Server Error",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Bad Request",
+							"reason":  "Internal Server Error",
 						},
 					},
 				},
@@ -118,8 +117,8 @@ func RemoveById() echo.HandlerFunc {
 					Message: "Bad request",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Bad request",
+							"reason":  "Bad Request",
+							"message": "The provided ID was rejected, not valid",
 						},
 					},
 				},
@@ -138,8 +137,8 @@ func RemoveById() echo.HandlerFunc {
 					Message: "Not Found",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Not Found",
+							"reason":  "Not Found",
+							"message": "The event was not found",
 						},
 					},
 				},
@@ -171,11 +170,11 @@ func RemoveByIdWithParticipants() echo.HandlerFunc {
 				},
 				Error: models.Error{
 					Code:    422,
-					Message: "Unprocessable entity",
+					Message: "Unprocessable Entity",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Unprocessable entity",
+							"reason":  "Unprocessable Entity",
+							"message": "The ID parameter cannot be used as integer",
 						},
 					},
 				},
@@ -192,11 +191,11 @@ func RemoveByIdWithParticipants() echo.HandlerFunc {
 				},
 				Error: models.Error{
 					Code:    500,
-					Message: "Internal server error",
+					Message: "Internal Server Error",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Internal server error",
+							"reason":  "Internal Server Error",
+							"message": "Database connection failed",
 						},
 					},
 				},
@@ -218,7 +217,7 @@ func RemoveByIdWithParticipants() echo.HandlerFunc {
 
 		stmt, err := db.Prepare(q)
 		if err != nil {
-			return c.JSON(http.StatusBadRequest, models.BadResponse{
+			return c.JSON(http.StatusInternalServerError, models.BadResponse{
 				APIVersion: constants.APIVersion,
 				Method:     "events.delete",
 				Context:    c.Request().URL.String(),
@@ -227,11 +226,10 @@ func RemoveByIdWithParticipants() echo.HandlerFunc {
 				},
 				Error: models.Error{
 					Code:    400,
-					Message: "Bad Request",
+					Message: "Internal Server Error",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Bad Request",
+							"reason":  "Internal Server Error",
 						},
 					},
 				},
@@ -254,11 +252,11 @@ func RemoveByIdWithParticipants() echo.HandlerFunc {
 				},
 				Error: models.Error{
 					Code:    400,
-					Message: "Bad request",
+					Message: "Bad Request",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Bad request",
+							"reason":  "Bad Request",
+							"message": "The ID provided was rejected, not valid",
 						},
 					},
 				},
@@ -276,7 +274,7 @@ func RemoveByIdWithParticipants() echo.HandlerFunc {
 
 		stmt, err = db.Prepare(q)
 		if err != nil {
-			return c.JSON(http.StatusBadRequest, models.BadResponse{
+			return c.JSON(http.StatusInternalServerError, models.BadResponse{
 				APIVersion: constants.APIVersion,
 				Method:     "events.delete",
 				Context:    c.Request().URL.String(),
@@ -285,11 +283,10 @@ func RemoveByIdWithParticipants() echo.HandlerFunc {
 				},
 				Error: models.Error{
 					Code:    400,
-					Message: "Bad Request",
+					Message: "Internal Server Error",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Bad Request",
+							"reason":  "Internal Server Error",
 						},
 					},
 				},
@@ -312,11 +309,11 @@ func RemoveByIdWithParticipants() echo.HandlerFunc {
 				},
 				Error: models.Error{
 					Code:    400,
-					Message: "Bad request",
+					Message: "Bad Request",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Bad request",
+							"reason":  "Bad Request",
+							"message": "The ID provided was rejected, not valid",
 						},
 					},
 				},
@@ -335,8 +332,8 @@ func RemoveByIdWithParticipants() echo.HandlerFunc {
 					Message: "Not Found",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Not Found",
+							"reason":  "Not Found",
+							"message": fmt.Sprintf("The event with ID %d was not found", id),
 						},
 					},
 				},

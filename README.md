@@ -12,7 +12,7 @@ Just run the server, it's in:
 
 or
 
- - [ROOT_DIR]/bin/server.exe (for Windows 10 x64)
+ - [ROOT_DIR]/bin/server.exe (for Windows 10 x64 (build again the source code))
 
 With ```./bin/server``` or ```./bin/server.exe```
 

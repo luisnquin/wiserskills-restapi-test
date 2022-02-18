@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 
 	"github.com/luisnquin/restapi-technical-test/src/constants"
@@ -32,11 +31,11 @@ func UpdateTicketById() echo.HandlerFunc {
 				},
 				Error: models.Error{
 					Code:    422,
-					Message: "Unprocessable entity",
+					Message: "Unprocessable Entity",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Unprocessable entity",
+							"reason":  "Unprocessable Entity",
+							"message": "The ID parameter cannot be processed as integer",
 						},
 					},
 				},
@@ -53,11 +52,11 @@ func UpdateTicketById() echo.HandlerFunc {
 				},
 				Error: models.Error{
 					Code:    400,
-					Message: "Bad request",
+					Message: "Bad Request",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Bad request",
+							"reason": "Bad Request",
+							"message": "The request body data is not valid",
 						},
 					},
 				},
@@ -77,7 +76,7 @@ func UpdateTicketById() echo.HandlerFunc {
 					Message: "Bad Request",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  "The request body is empty",
+							"reason":  "The request body data is empty",
 							"message": "Bad Request",
 						},
 					},
@@ -95,11 +94,11 @@ func UpdateTicketById() echo.HandlerFunc {
 				},
 				Error: models.Error{
 					Code:    500,
-					Message: "Internal server error",
+					Message: "Internal Server Error",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Internal server error",
+							"reason": "Internal Server Error",
+							"message": "Database connection failed",
 						},
 					},
 				},
@@ -111,10 +110,14 @@ func UpdateTicketById() echo.HandlerFunc {
 			}
 		}()
 
-		q := "SELECT EXISTS (SELECT t.id AS id, CONCAT(p.firstname, ' ',p.lastname) AS participant, e.name AS event FROM tickets AS t INNER JOIN events AS e ON e.id=t.event INNER JOIN participants AS p ON p.id=t.participant WHERE e.id = ? AND p.id = ?);"
-		if constants.Persistence == storage.PostgreSQL {
-			q = sqlx.Rebind(sqlx.DOLLAR, q)
+		var q string
+		switch constants.Persistence {
+		case storage.PostgreSQL:
+			q = "SELECT EXISTS (SELECT t.id AS id, CONCAT(p.firstname, ' ',p.lastname) AS participant, e.name AS event FROM tickets AS t INNER JOIN events AS e ON e.id=t.event INNER JOIN participants AS p ON p.id=t.participant WHERE e.id = $1 AND p.id = $2);"
+		case storage.MySQL:
+			q = "SELECT EXISTS (SELECT t.id AS id, CONCAT(p.firstname, ' ',p.lastname) AS participant, e.name AS event FROM tickets AS t INNER JOIN events AS e ON e.id=t.event INNER JOIN participants AS p ON p.id=t.participant WHERE e.id = ? AND p.id = ?);"
 		}
+
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 		defer cancel()
 
@@ -126,11 +129,10 @@ func UpdateTicketById() echo.HandlerFunc {
 				Context:    c.Request().URL.String(),
 				Error: models.Error{
 					Code:    500,
-					Message: "Internal server error",
+					Message: "Internal Server Error",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Internal server error",
+							"reason":  "Internal Server Error",
 						},
 					},
 				},
@@ -154,18 +156,21 @@ func UpdateTicketById() echo.HandlerFunc {
 					Message: "Bad request",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Bad request",
+							"reason":  "Bad Request",
+							"message": "The participant was already registered for the event previously",
 						},
 					},
 				},
 			})
 		}
 
-		q = "UPDATE tickets SET participant = ?, event = ? WHERE id = ?;"
-		if constants.Persistence == storage.PostgreSQL {
-			q = sqlx.Rebind(sqlx.DOLLAR, q)
+		switch constants.Persistence {
+		case storage.PostgreSQL:
+			q = "UPDATE tickets SET participant = $1, event = $2 WHERE id = $3;"
+		case storage.MySQL:
+			q = "UPDATE tickets SET participant = ?, event = ? WHERE id = ?;"
 		}
+
 		stmt, err = db.PrepareContext(ctx, q)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, models.BadResponse{
@@ -177,11 +182,10 @@ func UpdateTicketById() echo.HandlerFunc {
 				},
 				Error: models.Error{
 					Code:    500,
-					Message: "Internal server error",
+					Message: "Internal Server Error",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Internal server error",
+							"reason":  "Internal Server Error",
 						},
 					},
 				},
@@ -207,8 +211,8 @@ func UpdateTicketById() echo.HandlerFunc {
 					Message: "Bad request",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Bad request",
+							"reason":  "Bad Request",
+							"message": "The request body data or parameters was rejected, not valid",
 						},
 					},
 				},
@@ -227,8 +231,8 @@ func UpdateTicketById() echo.HandlerFunc {
 					Message: "Not Found",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Not Found",
+							"reason":  "Not Found",
+							"message": "Ticket not found",
 						},
 					},
 				},

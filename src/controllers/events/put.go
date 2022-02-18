@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 
 	"github.com/luisnquin/restapi-technical-test/src/constants"
@@ -32,11 +31,11 @@ func UpdateById() echo.HandlerFunc {
 				},
 				Error: models.Error{
 					Code:    422,
-					Message: "Unprocessable entity",
+					Message: "Unprocessable Entity",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Unprocessable entity",
+							"reason":  "Unprocessable Entity",
+							"message": "The ID provided cannot be processed as integer",
 						},
 					},
 				},
@@ -53,11 +52,11 @@ func UpdateById() echo.HandlerFunc {
 				},
 				Error: models.Error{
 					Code:    400,
-					Message: "Bad request",
+					Message: "Bad Request",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Bad request",
+							"reason":  "Bad Request",
+							"message": "The request body data is not valid",
 						},
 					},
 				},
@@ -77,8 +76,8 @@ func UpdateById() echo.HandlerFunc {
 					Message: "Bad Request",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  "The request body is empty",
-							"message": "Bad Request",
+							"reason":  "Bad Request",
+							"message": "The request body data is empty",
 						},
 					},
 				},
@@ -98,8 +97,8 @@ func UpdateById() echo.HandlerFunc {
 					Message: "Internal server error",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Internal server error",
+							"reason":  "Internal server error",
+							"message": "Database connection failed",
 						},
 					},
 				},
@@ -112,9 +111,12 @@ func UpdateById() echo.HandlerFunc {
 			}
 		}()
 
-		q := "UPDATE events SET name = ? WHERE id = ?;"
-		if constants.Persistence == storage.PostgreSQL {
-			q = sqlx.Rebind(sqlx.DOLLAR, q)
+		var q string
+		switch constants.Persistence {
+		case storage.PostgreSQL:
+			q = "UPDATE events SET name = $1 WHERE id = $2;"
+		case storage.MySQL:
+			q = "UPDATE events SET name = ? WHERE id = ?;"
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
@@ -131,11 +133,10 @@ func UpdateById() echo.HandlerFunc {
 				},
 				Error: models.Error{
 					Code:    500,
-					Message: "Internal server error",
+					Message: "Internal Server Error",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Internal server error",
+							"reason":  "Internal Server Error",
 						},
 					},
 				},
@@ -158,11 +159,11 @@ func UpdateById() echo.HandlerFunc {
 				},
 				Error: models.Error{
 					Code:    400,
-					Message: "Bad request",
+					Message: "Bad Request",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Bad request",
+							"reason":  "Bad Request",
+							"message": "Are you following any criteria for insertion?",
 						},
 					},
 				},
@@ -182,8 +183,8 @@ func UpdateById() echo.HandlerFunc {
 					Message: "Not Found",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Not Found",
+							"reason":  "Not Found",
+							"message": "Event not found",
 						},
 					},
 				},

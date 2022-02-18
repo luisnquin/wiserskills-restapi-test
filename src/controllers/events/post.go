@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 
 	"github.com/luisnquin/restapi-technical-test/src/constants"
@@ -32,8 +31,8 @@ func New() echo.HandlerFunc {
 					Message: "Bad request",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Bad request",
+							"reason":  "Bad request",
+							"message": "The request body data is not valid",
 						},
 					},
 				},
@@ -65,11 +64,11 @@ func New() echo.HandlerFunc {
 				Context:    c.Request().URL.String(),
 				Error: models.Error{
 					Code:    500,
-					Message: "Internal server error",
+					Message: "Internal Server Error",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Internal server error",
+							"reason": "Internal Server Error",
+							"message": "Database connection failed",
 						},
 					},
 				},
@@ -85,9 +84,12 @@ func New() echo.HandlerFunc {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 		defer cancel()
 
-		q := "INSERT INTO events(name) VALUES(?);"
-		if constants.Persistence == storage.PostgreSQL {
-			q = sqlx.Rebind(sqlx.DOLLAR, q)
+		var q string
+		switch constants.Persistence {
+		case storage.PostgreSQL:
+			q = "INSERT INTO events(name) VALUES($1);"
+		case storage.MySQL:
+			q = "INSERT INTO events(name) VALUES(?);"
 		}
 
 		stmt, err := db.PrepareContext(ctx, q)
@@ -98,11 +100,10 @@ func New() echo.HandlerFunc {
 				Context:    c.Request().URL.String(),
 				Error: models.Error{
 					Code:    500,
-					Message: "Internal server error",
+					Message: "Internal Server Error",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Internal server error",
+							"reason":  "Internal Server Error",
 						},
 					},
 				},
@@ -123,11 +124,11 @@ func New() echo.HandlerFunc {
 				Context:    c.Request().URL.String(),
 				Error: models.Error{
 					Code:    400,
-					Message: "Bad request",
+					Message: "Bad Request",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Bad request",
+							"reason": "Bad Request",
+							"message": "The request body data was rejected, not valid",
 						},
 					},
 				},
@@ -135,18 +136,17 @@ func New() echo.HandlerFunc {
 		}
 
 		if i, _ := r.RowsAffected(); i == 0 {
-			// It's 200?
 			return c.JSON(http.StatusBadRequest, models.BadResponse{
 				APIVersion: constants.APIVersion,
 				Method:     "events.post",
 				Context:    c.Request().URL.String(),
 				Error: models.Error{
 					Code:    400,
-					Message: "Bad request",
+					Message: "Bad Request",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  "Your changes cannot be implemented",
-							"message": "Bad request",
+							"reason":  "Bad Request",
+							"message": "Are you following any criteria for insertion?",
 						},
 					},
 				},
@@ -164,38 +164,38 @@ func NewParticipantByIds() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var db = storage.Get(constants.Persistence)
 
-		event_id, err := strconv.Atoi(c.Param("event-id"))
+		eventId, err := strconv.Atoi(c.Param("event-id"))
 		if err != nil {
 			return c.JSON(http.StatusUnprocessableEntity, models.BadResponse{
 				APIVersion: constants.APIVersion,
 				Method:     "events.post",
 				Context:    c.Request().URL.String(),
 				Params: map[string]interface{}{
-					"event_id":       event_id,
-					"participant_id": "",
+					"event_id":       eventId,
+					"participant_id": 0,
 				},
 				Error: models.Error{
 					Code:    422,
 					Message: "Unprocessable entity",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Unprocessable entity",
+							"reason":  "Unprocessable entity",
+							"message": "The event ID provided cannot be processed as integer",
 						},
 					},
 				},
 			})
 		}
 
-		participant_id, err := strconv.Atoi(c.Param("participant-id"))
+		participantId, err := strconv.Atoi(c.Param("participant-id"))
 		if err != nil {
 			return c.JSON(http.StatusUnprocessableEntity, models.BadResponse{
 				APIVersion: constants.APIVersion,
 				Method:     "events.post",
 				Context:    c.Request().URL.String(),
 				Params: map[string]interface{}{
-					"event_id":       event_id,
-					"participant_id": participant_id,
+					"event_id":       eventId,
+					"participant_id": participantId,
 				},
 				Error: models.Error{
 					Code:    422,
@@ -203,7 +203,7 @@ func NewParticipantByIds() echo.HandlerFunc {
 					Errors: []map[string]interface{}{
 						{
 							"reason":  err,
-							"message": "Unprocessable entity",
+							"message": "The participant ID provided cannot be processed as integer",
 						},
 					},
 				},
@@ -215,13 +215,17 @@ func NewParticipantByIds() echo.HandlerFunc {
 				APIVersion: constants.APIVersion,
 				Method:     "events.post",
 				Context:    c.Request().URL.String(),
+				Params: map[string]interface{}{
+					"event_id":       eventId,
+					"participant_id": participantId,
+				},
 				Error: models.Error{
 					Code:    500,
 					Message: "Internal server error",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Internal server error",
+							"reason":  "Internal server error",
+							"message": "Database connection failed",
 						},
 					},
 				},
@@ -234,10 +238,14 @@ func NewParticipantByIds() echo.HandlerFunc {
 			}
 		}()
 
-		q := "SELECT EXISTS (SELECT t.id AS id, CONCAT(p.firstname, ' ',p.lastname) AS participant, e.name AS event FROM tickets AS t INNER JOIN events AS e ON e.id=t.event INNER JOIN participants AS p ON p.id=t.participant WHERE e.id = ? AND p.id = ?);"
-		if constants.Persistence == storage.PostgreSQL {
-			q = sqlx.Rebind(sqlx.DOLLAR, q)
+		var q string
+		switch constants.Persistence {
+		case storage.PostgreSQL:
+			q = "SELECT EXISTS (SELECT t.id AS id, CONCAT(p.firstname, ' ',p.lastname) AS participant, e.name AS event FROM tickets AS t INNER JOIN events AS e ON e.id=t.event INNER JOIN participants AS p ON p.id=t.participant WHERE e.id = $1 AND p.id = $2);"
+		case storage.MySQL:
+			q = "SELECT EXISTS (SELECT t.id AS id, CONCAT(p.firstname, ' ',p.lastname) AS participant, e.name AS event FROM tickets AS t INNER JOIN events AS e ON e.id=t.event INNER JOIN participants AS p ON p.id=t.participant WHERE e.id = ? AND p.id = ?);"
 		}
+
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 		defer cancel()
 
@@ -247,13 +255,16 @@ func NewParticipantByIds() echo.HandlerFunc {
 				APIVersion: constants.APIVersion,
 				Method:     "events.post",
 				Context:    c.Request().URL.String(),
+				Params: map[string]interface{}{
+					"event_id":       eventId,
+					"participant_id": participantId,
+				},
 				Error: models.Error{
 					Code:    500,
 					Message: "Internal server error",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Internal server error",
+							"reason":  "Internal server error",
 						},
 					},
 				},
@@ -266,30 +277,34 @@ func NewParticipantByIds() echo.HandlerFunc {
 		}()
 		
 		var exists bool
-		stmt.QueryRowContext(ctx, event_id, participant_id).Scan(&exists)
+		stmt.QueryRowContext(ctx, eventId, participantId).Scan(&exists)
 		if exists {
 			return c.JSON(http.StatusBadRequest, models.BadResponse{
 				APIVersion: constants.APIVersion,
 				Method: "events.post",
 				Context: c.Request().URL.String(),
+				Params: map[string]interface{}{
+					"event_id":       eventId,
+					"participant_id": participantId,
+				},
 				Error: models.Error{
 					Code: 400,
-					Message: "Bad request",
+					Message: "Bad Request",
 					Errors: []map[string]interface{}{
 						{
-							"reason": err,
-							"message": "Bad request",
+							"reason": "Bad Request",
+							"message": "The participant was already registered for the event previously",
 						},
 					},
 				},
 			})
 		}
 
-		
-		q = "INSERT INTO tickets(participant, event) VALUES(?, ?);"
-
-		if constants.Persistence == storage.PostgreSQL {
-			q = sqlx.Rebind(sqlx.DOLLAR, q)
+		switch constants.Persistence {
+		case storage.PostgreSQL:
+			q = "INSERT INTO tickets(participant, event) VALUES($1, $2);"
+		case storage.MySQL:
+			q = "INSERT INTO tickets(participant, event) VALUES(?, ?);"
 		}
 
 		stmt, err = db.PrepareContext(ctx, q)
@@ -298,13 +313,16 @@ func NewParticipantByIds() echo.HandlerFunc {
 				APIVersion: constants.APIVersion,
 				Method:     "events.post",
 				Context:    c.Request().URL.String(),
+				Params: map[string]interface{}{
+					"event_id":       eventId,
+					"participant_id": participantId,
+				},
 				Error: models.Error{
 					Code:    500,
 					Message: "Internal server error",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Internal server error",
+							"reason":  "Internal Server Error",
 						},
 					},
 				},
@@ -316,39 +334,45 @@ func NewParticipantByIds() echo.HandlerFunc {
 			}
 		}()
 
-		r, err := stmt.ExecContext(ctx, participant_id, event_id)
+		r, err := stmt.ExecContext(ctx, participantId, eventId)
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, models.BadResponse{
 				APIVersion: constants.APIVersion,
 				Method:     "events.post",
 				Context:    c.Request().URL.String(),
+				Params: map[string]interface{}{
+					"event_id":       eventId,
+					"participant_id": participantId,
+				},
 				Error: models.Error{
 					Code:    400,
 					Message: "Bad request",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Bad request",
+							"reason":  "Bad request",
+							"message": "The request body data was rejected, not valid",
 						},
 					},
 				},
 			})
 		}
-		
 
 		if i, _ := r.RowsAffected(); i == 0 {
-			// It's 200?
 			return c.JSON(http.StatusBadRequest, models.BadResponse{
 				APIVersion: constants.APIVersion,
 				Method:     "events.post",
 				Context:    c.Request().URL.String(),
+				Params: map[string]interface{}{
+					"event_id":       eventId,
+					"participant_id": participantId,
+				},
 				Error: models.Error{
 					Code:    400,
-					Message: "Bad request",
+					Message: "Bad Request",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  "Your changes cannot be implemented",
-							"message": "Bad request",
+							"reason":  "Bad Request",
+							"message": "Are you following any criteria for insertion?",
 						},
 					},
 				},
@@ -358,6 +382,10 @@ func NewParticipantByIds() echo.HandlerFunc {
 			APIVersion: constants.APIVersion,
 			Method:     "events.post",
 			Context:    c.Request().URL.String(),
+			Params: map[string]interface{}{
+				"event_id":       eventId,
+				"participant_id": participantId,
+			},
 		})
 	}
 }

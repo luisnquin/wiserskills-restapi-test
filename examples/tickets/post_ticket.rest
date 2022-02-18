@@ -1,7 +1,7 @@
-POST http://127.0.0.1:8000/api/v1/event
+POST http://127.0.0.1:8000/api/v1/ticket
 Content-Type: application/json
 
 {
     "participant": 95,
-    "event": 25
+    "event": 92
 }

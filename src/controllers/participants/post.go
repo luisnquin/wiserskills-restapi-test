@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 
 	"github.com/luisnquin/restapi-technical-test/src/constants"
@@ -28,18 +27,18 @@ func New() echo.HandlerFunc {
 				Context:    c.Request().URL.String(),
 				Error: models.Error{
 					Code:    400,
-					Message: "Bad request",
+					Message: "Bad Request",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Bad request",
+							"reason":  "Bad Request",
+							"message": "The request body data is not valid",
 						},
 					},
 				},
 			})
 		}
 
-		if request == new(models.Participant) {
+		if (*request == models.Participant{}) {
 			return c.JSON(http.StatusBadRequest, models.BadResponse{
 				APIVersion: constants.APIVersion,
 				Method:     "participants.post",
@@ -49,8 +48,8 @@ func New() echo.HandlerFunc {
 					Message: "Bad Request",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  "The request body is empty",
-							"message": "Bad Request",
+							"reason":  "Bad Request",
+							"message": "The request body data is empty",
 						},
 					},
 				},
@@ -64,11 +63,11 @@ func New() echo.HandlerFunc {
 				Context:    c.Request().URL.String(),
 				Error: models.Error{
 					Code:    500,
-					Message: "Internal server error",
+					Message: "Internal Server Error",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Internal server error",
+							"reason":  "Internal Server Error",
+							"message": "Database connection failed",
 						},
 					},
 				},
@@ -81,10 +80,12 @@ func New() echo.HandlerFunc {
 			}
 		}()
 
-		q := "INSERT INTO participants(firstname, lastname, age) VALUES(?, ?, ?);"
-
-		if constants.Persistence == storage.PostgreSQL {
-			q = sqlx.Rebind(sqlx.DOLLAR, q)
+		var q string
+		switch constants.Persistence {
+		case storage.PostgreSQL:
+			q = "INSERT INTO participants(firstname, lastname, age) VALUES($1, $2, $3);"
+		case storage.MySQL:
+			q = "INSERT INTO participants(firstname, lastname, age) VALUES(?, ?, ?);"
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
@@ -101,8 +102,7 @@ func New() echo.HandlerFunc {
 					Message: "Internal server error",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Internal server error",
+							"reason":  "Internal Server Error",
 						},
 					},
 				},
@@ -122,11 +122,11 @@ func New() echo.HandlerFunc {
 				Context:    c.Request().URL.String(),
 				Error: models.Error{
 					Code:    400,
-					Message: "Bad request",
+					Message: "Bad Request",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  err,
-							"message": "Bad request",
+							"reason":  "Bad Request",
+							"message": "The request body data was rejected, not valid",
 						},
 					},
 				},
@@ -134,18 +134,17 @@ func New() echo.HandlerFunc {
 		}
 
 		if i, _ := r.RowsAffected(); i == 0 {
-			// It's 200?
 			return c.JSON(http.StatusBadRequest, models.BadResponse{
 				APIVersion: constants.APIVersion,
 				Method:     "participants.post",
 				Context:    c.Request().URL.String(),
 				Error: models.Error{
 					Code:    400,
-					Message: "Bad request",
+					Message: "Bad Request",
 					Errors: []map[string]interface{}{
 						{
-							"reason":  "Your changes cannot be implemented",
-							"message": "Bad request",
+							"reason":  "Bad Request",
+							"message": "Are you following any criteria for insertion?",
 						},
 					},
 				},
